@@ -3,6 +3,8 @@ const express = require("express");
 const app = express();
 const bcrypt = require("bcrypt");
 const port = process.env.PORT || 4000;
+const cookieParser = require("cookie-parser");
+
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 
@@ -12,9 +14,11 @@ const { MongoClient, ServerApiVersion } = require("mongodb");
 const uri = process.env.URI;
 
 // middleware
+app.use(cookieParser());
 
 const verifyToken = (req, res, next) => {
   const token = req.cookies?.token;
+  // console.log("token", token);
 
   if (!token) {
     return res.status(401).json({ message: "Unauthorized access" });
@@ -26,6 +30,7 @@ const verifyToken = (req, res, next) => {
     }
 
     req.user = decoded; // { id, email }
+    console.log(req.user);
     next();
   });
 };
@@ -45,11 +50,9 @@ app.get("/", (req, res) => {
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
     const db = client.db("bookworm");
-
     // Collections
     const usersCollection = db.collection("users");
     const booksCollection = db.collection("books");
@@ -133,6 +136,30 @@ async function run() {
           image: user.image,
         },
       });
+    });
+
+    app.get("/me", verifyToken, async (req, res) => {
+      try {
+        const query = { email: req.user.email }; // <-- convert string to ObjectId
+
+        const user = await usersCollection.findOne(query, {
+          projection: { password: 0 }, // don't send password
+        });
+
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        res.json({ user });
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
+
+    // Logout
+    app.post("/logout", (req, res) => {
+      res.clearCookie("token");
+      res.json({ message: "Logged out" });
     });
 
     await client.db("admin").command({ ping: 1 });
