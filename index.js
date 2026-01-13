@@ -35,6 +35,13 @@ const verifyToken = (req, res, next) => {
   });
 };
 
+const verifyAdmin = (req, res, next) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Admin access only" });
+  }
+  next();
+};
+
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
@@ -140,10 +147,10 @@ async function run() {
 
     app.get("/me", verifyToken, async (req, res) => {
       try {
-        const query = { email: req.user.email }; // <-- convert string to ObjectId
+        const query = { email: req.user.email };
 
         const user = await usersCollection.findOne(query, {
-          projection: { password: 0 }, // don't send password
+          projection: { password: 0 },
         });
 
         if (!user) {
@@ -160,6 +167,15 @@ async function run() {
     app.post("/logout", (req, res) => {
       res.clearCookie("token");
       res.json({ message: "Logged out" });
+    });
+
+    // all users api
+    app.get("/users", async (req, res) => {
+      const users = await usersCollection
+        .find({}, { projection: { password: 0, shelves: 0 } })
+        .toArray();
+
+      res.json(users);
     });
 
     await client.db("admin").command({ ping: 1 });
