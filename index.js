@@ -429,6 +429,17 @@ async function run() {
       res.json({ message: "Book added", id: result.insertedId });
     });
 
+
+app.patch("/books/:id", verifyToken, verifyAdmin, async (req, res) => {
+  const { id } = req.params;
+  await booksCollection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: req.body }
+  );
+  res.json({ success: true });
+});
+
+
     // seedBooks();
 
     await client.db("admin").command({ ping: 1 });
