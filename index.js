@@ -444,6 +444,44 @@ async function run() {
       await booksCollection.deleteOne({ _id: new ObjectId(id) });
       res.json({ success: true });
     });
+
+    app.get("/users/my-books", verifyToken, async (req, res) => {
+      try {
+        const email = req.user.email;
+
+        const user = await usersCollection.findOne({ email });
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const {
+          currentlyReading = [],
+          wantToRead = [],
+          read = [],
+        } = user.shelves || {};
+
+        const books = await booksCollection
+          .find({
+            _id: {
+              $in: [...currentlyReading, ...wantToRead, ...read],
+            },
+          })
+          .toArray();
+
+        const mapBooks = (ids) =>
+          ids.map((id) =>
+            books.find((b) => b._id.toString() === id.toString())
+          );
+
+        res.json({
+          currentlyReading: mapBooks(currentlyReading),
+          wantToRead: mapBooks(wantToRead),
+          read: mapBooks(read),
+        });
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
+
     // seedBooks();
 
     await client.db("admin").command({ ping: 1 });
