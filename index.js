@@ -416,6 +416,19 @@ async function run() {
       res.json(book);
     });
 
+    // Admin add book
+    app.post("/books", verifyToken, verifyAdmin, async (req, res) => {
+      const book = {
+        ...req.body,
+        avgRating: req.body.rating,
+        totalReads: 0,
+        createdAt: new Date(),
+      };
+
+      const result = await booksCollection.insertOne(book);
+      res.json({ message: "Book added", id: result.insertedId });
+    });
+
     // seedBooks();
 
     await client.db("admin").command({ ping: 1 });
