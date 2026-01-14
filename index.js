@@ -482,6 +482,38 @@ async function run() {
       }
     });
 
+    app.post("/users/shelf", verifyToken, async (req, res) => {
+      const { bookId, status } = req.body;
+      const userId = req.user.id;
+
+      const validShelves = ["wantToRead", "currentlyReading", "read"];
+      if (!validShelves.includes(status)) {
+        return res.status(400).json({ message: "Invalid shelf" });
+      }
+
+      const bookObjectId = new ObjectId(bookId);
+
+      // build pull object dynamically (exclude target shelf)
+      const pullUpdate = {};
+      validShelves.forEach((shelf) => {
+        if (shelf !== status) {
+          pullUpdate[`shelves.${shelf}`] = bookObjectId;
+        }
+      });
+
+      await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        {
+          $pull: pullUpdate,
+          $addToSet: {
+            [`shelves.${status}`]: bookObjectId,
+          },
+        }
+      );
+
+      res.json({ message: "Shelf updated successfully" });
+    });
+
     // seedBooks();
 
     await client.db("admin").command({ ping: 1 });
