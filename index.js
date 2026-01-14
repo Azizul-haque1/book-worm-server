@@ -10,7 +10,7 @@ const jwt = require("jsonwebtoken");
 
 app.use(express.json());
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = process.env.URI;
 
 // middleware
@@ -121,7 +121,7 @@ async function run() {
 
       // create token
       const token = jwt.sign(
-        { id: user._id, email: user.email },
+        { id: user._id, email: user.email, role: user.role },
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
@@ -176,6 +176,26 @@ async function run() {
         .toArray();
 
       res.json(users);
+    });
+
+    // user role update api
+    app.patch("/users/:id/role", verifyToken, verifyAdmin, async (req, res) => {
+      const { role } = req.body;
+      console.log("role", role);
+
+      await usersCollection.updateOne(
+        { _id: new ObjectId(req.params.id) },
+        { $set: { role } }
+      );
+
+      res.json({ message: "Role updated" });
+    });
+
+    // delete user api
+    app.delete("/users/:id", verifyToken, verifyAdmin, async (req, res) => {
+      console.log("id", req.params.id);
+      await usersCollection.deleteOne({ _id: new ObjectId(req.params.id) });
+      res.json({ message: "User deleted" });
     });
 
     await client.db("admin").command({ ping: 1 });
