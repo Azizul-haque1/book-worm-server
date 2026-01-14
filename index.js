@@ -401,15 +401,20 @@ async function run() {
       res.json({ message: "User deleted" });
     });
 
-
-    // get all books api 
+    // get all books api
 
     app.get("/books", async (req, res) => {
       const books = await booksCollection.find().toArray();
       res.json(books);
     });
 
-
+    // Get single book
+    app.get("/books/:id", async (req, res) => {
+      const book = await booksCollection.findOne({
+        _id: new ObjectId(req.params.id),
+      });
+      res.json(book);
+    });
 
     // seedBooks();
 
