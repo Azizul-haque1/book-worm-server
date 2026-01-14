@@ -429,17 +429,21 @@ async function run() {
       res.json({ message: "Book added", id: result.insertedId });
     });
 
+    app.patch("/books/:id", verifyToken, verifyAdmin, async (req, res) => {
+      const { id } = req.params;
+      await booksCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: req.body }
+      );
+      res.json({ success: true });
+    });
 
-app.patch("/books/:id", verifyToken, verifyAdmin, async (req, res) => {
-  const { id } = req.params;
-  await booksCollection.updateOne(
-    { _id: new ObjectId(id) },
-    { $set: req.body }
-  );
-  res.json({ success: true });
-});
-
-
+    // delete book api
+    app.delete("/books/:id", verifyToken, verifyAdmin, async (req, res) => {
+      const { id } = req.params;
+      await booksCollection.deleteOne({ _id: new ObjectId(id) });
+      res.json({ success: true });
+    });
     // seedBooks();
 
     await client.db("admin").command({ ping: 1 });
